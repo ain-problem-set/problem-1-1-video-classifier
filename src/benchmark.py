@@ -6,18 +6,27 @@ import time
 import numpy as np
 
 
+def _check(results):
+    for r in results:
+        if "error" in r:
+            raise RuntimeError(f"benchmark input failed: {r['video']}: {r['error']}")
+
+
 def run(predictor, paths, repeats=3):
-    predictor.predict(paths[0])  # warm-up
+    if not paths:
+        raise ValueError("no video files found in the given paths")
+    _check([predictor.predict(paths[0])])  # warm-up
     times, comps = [], []
     for _ in range(repeats):
         for p in paths:
             t0 = time.perf_counter()
             r = predictor.predict(p)
+            _check([r])
             times.append((time.perf_counter() - t0) * 1000)
             comps.append(r.get("latency_ms", {}))
     batch = [paths[i % len(paths)] for i in range(32)]
     t0 = time.perf_counter()
-    predictor.predict_many(batch)
+    _check(predictor.predict_many(batch))
     wall = (time.perf_counter() - t0) * 1000
     keys = ("decode", "motion", "encoder", "head")
     return {

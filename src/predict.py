@@ -60,6 +60,8 @@ class Predictor:
         if ok and self.cfg.encoder:
             t0 = time.perf_counter()
             emb = self.encoder.embed(np.concatenate([s.rgb for _, _, s, _, _ in ok]), batch_size=32)
+            # training embeddings are stored fp16; match that precision at serve time
+            emb = emb.astype(np.float16).astype(np.float32)
             per, n = _ms(t0) / len(ok), self.cfg.n_frames
             for j, (_, _, _, feats, lat) in enumerate(ok):
                 feats[self.cfg.encoder] = emb[j * n:(j + 1) * n][None]

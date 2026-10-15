@@ -112,7 +112,11 @@ SUBCOMMANDS["export"] = ("export the production head to ONNX", lambda p: None, c
 def cmd_predict(args):
     import json
     from predict import Predictor, collect_videos
-    results = Predictor().predict_many(collect_videos(args.paths))
+    videos = collect_videos(args.paths)
+    if not videos:
+        print("error: no video files found in the given paths", file=sys.stderr)
+        return 1
+    results = Predictor().predict_many(videos)
     for r in results:
         print(json.dumps(r))
     return 1 if any("error" in r for r in results) else 0
