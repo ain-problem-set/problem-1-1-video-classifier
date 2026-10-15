@@ -1,19 +1,15 @@
-# Fill this in before you submit -- our evaluator runs these commands
-# EXACTLY as written, in this order, from a fresh checkout of your fork.
-# Keep every command non-interactive (no prompts) and idempotent.
+# Commands run EXACTLY as written, in order, from a fresh checkout. All non-interactive and idempotent.
 
 setup_commands:
   - "pip install -r requirements.txt"
-  # - add every other setup step here, in order (env vars, downloads, etc.)
+  - "python src/main.py fetch-encoder"
 
 run_commands:
-  - "python src/main.py --help"
-  # - the real command(s) that actually run your solution
+  - "python src/main.py evaluate"
+  - "python src/main.py predict samples/"
+  - "python src/main.py benchmark samples/"
 
-test_commands: []
-  # optional -- commands that run your own tests/checks, if you have any
+test_commands:
+  - "python -m pytest -q"
 
-notes: ""
-  # anything we should know before running this (e.g. "needs a GPU",
-  # "takes about 10 minutes", "expects a sample dataset already present
-  # under data/, see docs/ for where to get it")
+notes: "CPU only, no GPU. Takes about NNN minutes total (measured from a fresh checkout, excluding the first-time pip install of torch). fetch-encoder downloads the production encoder's weights once (about 605 MB for ViT-B-32) from the Hugging Face Hub. evaluate re-runs the full trade-off sweep from the committed VideoMME 10% features in artifacts/ (no video download needed). The full rebuild from YouTube (sample, download, extract, labels, featurize, evaluate, export) is documented in docs/README.md."
