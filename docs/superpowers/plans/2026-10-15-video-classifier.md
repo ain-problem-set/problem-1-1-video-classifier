@@ -28,7 +28,8 @@
 - Committed `artifacts/` stays under 10 MB; `data/` is gitignored.
 - `run.yaml` runs non-interactively on CPU from a fresh checkout without downloading any video. `evaluate` must not import torch.
 - All commands are run from the repo root through `python src/main.py <cmd>`.
-- Wherever a step says `python`, use the repo venv: `.venv/Scripts/python` (Windows, Git Bash).
+- Wherever a step says `python`, use the repo venv: `.venv/Scripts/python` on Windows (Git Bash), `.venv/bin/python` on Linux/macOS, or plain `python` after activating the venv (`source .venv/Scripts/activate` or `source .venv/bin/activate`). The steps below spell out the Windows path; substitute the right one on other systems.
+- The small-encoder fallback order is fixed: `MobileCLIP2-S0` → `MobileCLIP-S1` → `TinyCLIP-ViT-39M-16-Text-19M`. If all three fail to load, the sweep drops the small rows, which the spec allows. A candidate that is listed but fails to build is removed from `config.py`, with the reason in the commit message.
 
 ## Review Focus
 
@@ -569,7 +570,7 @@ def find_video(videos_dir, video_id):
 def ytdlp_cmd(youtube_id, out_dir, video_id):
     return [
         sys.executable, "-m", "yt_dlp",
-        "-f", "bv*[height<=240][vcodec^=avc1]/bv*[height<=240]/wv*",
+        "-f", "bv*[height<=240][vcodec^=avc1]/bv*[height<=240][vcodec^=vp09]/bv*[height<=240]/wv*",
         "--no-playlist", "--quiet", "--no-warnings",
         "-o", str(Path(out_dir) / f"{video_id}.%(ext)s"),
         f"https://www.youtube.com/watch?v={youtube_id}",
@@ -1128,6 +1129,8 @@ def ms_per_frame(enc, frames, repeats=5):
 ```
 
 - [ ] **Step 4: Run all encoder tests, including the slow one (this downloads about 300 MB once)**
+
+`MobileCLIP2-S0` was confirmed in `open_clip`'s `pretrained.py` on main, but the 3.3.0 wheel may predate it. In that case `resolve()` simply returns the next candidate.
 
 Run: `.venv/Scripts/python -m pytest tests/test_encoders.py -q -m "slow or not slow"`
 Expected: 2 passed. Record which small encoder `resolve("small")` returned.
