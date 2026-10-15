@@ -2,6 +2,8 @@
 
 setup_commands:
   - "python -c \"import sys; assert sys.version_info >= (3, 12), 'Python 3.12+ required'\""
+  - "python -m venv .venv"
+  - ".\\.venv\\Scripts\activate"
   - "pip install -r requirements.txt"
   - "python src/main.py fetch-encoder"
 
