@@ -92,6 +92,15 @@ SUBCOMMANDS["labels"] = ("build labels.csv from mapping + overrides", lambda p: 
 SUBCOMMANDS["featurize"] = ("compute motion features and encoder embeddings", lambda p: None, cmd_featurize)
 
 
+def cmd_evaluate(args):
+    from train_eval import run_evaluation
+    run_evaluation(n_repeats=args.repeats)
+
+
+SUBCOMMANDS["evaluate"] = ("run the CV sweep on committed features",
+                           lambda p: p.add_argument("--repeats", type=int, default=5), cmd_evaluate)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="main.py", description="Video type classifier for chunking routing")
     sub = parser.add_subparsers(dest="cmd", required=True)
