@@ -110,3 +110,10 @@ def test_batched_predictions_match_single(fake_artifacts, make_video):
         assert b["class"] == s["class"]
         for c in C.CLASSES:
             assert abs(b["probabilities"][c] - s["probabilities"][c]) < 1e-5
+
+
+def test_result_video_key_is_path_as_given(fake_artifacts, make_video):
+    p = make_video(n=100)
+    assert predictor(fake_artifacts).predict(p)["video"] == str(p)
+    bad = p.parent / "missing.mp4"
+    assert predictor(fake_artifacts).predict(bad)["video"] == str(bad)

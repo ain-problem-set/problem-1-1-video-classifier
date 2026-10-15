@@ -48,7 +48,7 @@ class Predictor:
             try:
                 s = extract(p, C.N_FRAMES, keep=self.keep)
             except Exception as e:  # corrupt/unsupported input must not abort the batch
-                results.append({"video": p.name, "error": str(e)})
+                results.append({"video": str(p), "error": str(e)})
                 continue
             lat, feats = {"decode": s.decode_ms, "motion": 0.0, "encoder": 0.0}, {}
             if self.cfg.uses_motion:
@@ -81,7 +81,7 @@ class Predictor:
         k = int(proba.argmax())
         cls, conf = self.prod["classes"][k], float(proba[k])
         fallback = conf < self.prod["tau"]
-        return {"video": path.name, "class": cls, "confidence": round(conf, 4),
+        return {"video": str(path), "class": cls, "confidence": round(conf, 4),
                 "recommended_chunker": C.FALLBACK_CHUNKER if fallback else C.CHUNKERS[cls],
                 "fallback": fallback,
                 "probabilities": {c: round(float(q), 4) for c, q in zip(self.prod["classes"], proba)},

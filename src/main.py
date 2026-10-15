@@ -109,6 +109,9 @@ def cmd_export(args):
 SUBCOMMANDS["export"] = ("export the production head to ONNX", lambda p: None, cmd_export)
 
 
+PREDICT_CHUNK = 32
+
+
 def cmd_predict(args):
     import json
     from predict import Predictor, collect_videos
@@ -116,10 +119,12 @@ def cmd_predict(args):
     if not videos:
         print("error: no video files found in the given paths", file=sys.stderr)
         return 1
-    results = Predictor().predict_many(videos)
-    for r in results:
-        print(json.dumps(r))
-    return 1 if any("error" in r for r in results) else 0
+    predictor, failed = Predictor(), False
+    for i in range(0, len(videos), PREDICT_CHUNK):
+        for r in predictor.predict_many(videos[i:i + PREDICT_CHUNK]):
+            print(json.dumps(r), flush=True)  # stream: one line per video as its chunk finishes
+            failed = failed or "error" in r
+    return 1 if failed else 0
 
 
 def cmd_benchmark(args):
