@@ -21,7 +21,7 @@ def cmd_sample(args):
     print(plan.groupby("role").size().to_string())
 
 
-SUBCOMMANDS["sample"] = ("draw the stratified 10% VideoMME sample", lambda p: None, cmd_sample)
+SUBCOMMANDS["sample"] = ("draw the stratified 10%% VideoMME sample", lambda p: None, cmd_sample)
 
 
 def cmd_download(args):
