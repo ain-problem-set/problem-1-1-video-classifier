@@ -36,6 +36,62 @@ def cmd_download(args):
 SUBCOMMANDS["download"] = ("download sampled videos (yt-dlp, <=240p)", lambda p: None, cmd_download)
 
 
+def _ready_ids():
+    import config as C
+    sample = _read(C.ART / "sample.csv")
+    return sample, [v for v in sample.video_id if (C.FRAMES / f"{v}.npz").exists()]
+
+
+def cmd_extract(args):
+    import config as C
+    from featurize import extract_all
+    failed = extract_all(_read(C.ART / "sample.csv"))
+    for vid, reason in failed:
+        print(f"FAILED {vid}: {reason}")
+    return 1 if failed else 0
+
+
+def cmd_label_sheets(args):
+    import cv2
+    import numpy as np
+    import config as C
+    from labels import contact_sheet, sheet_pages
+    sample, ids = _ready_ids()
+    info = sample.set_index("video_id")
+    C.SHEETS.mkdir(parents=True, exist_ok=True)
+    sheets = []
+    for vid in ids:
+        row = info.loc[vid]
+        title = f"{vid} | {row.sub_category} -> {C.SUBCATEGORY_TO_CLASS[row.sub_category]}"
+        sheet = contact_sheet(np.load(C.FRAMES / f"{vid}.npz")["rgb"], title)
+        cv2.imwrite(str(C.SHEETS / f"{vid}.jpg"), sheet)
+        sheets.append(sheet)
+    for k, page in enumerate(sheet_pages(sheets)):
+        cv2.imwrite(str(C.SHEETS / f"page_{k:02d}.jpg"), page)
+    print(f"wrote {len(sheets)} sheets to {C.SHEETS}")
+
+
+def cmd_labels(args):
+    import config as C
+    from labels import build_labels, load_overrides
+    df = build_labels(_read(C.ART / "sample.csv"), load_overrides(C.ART / "label_overrides.csv"))
+    df.to_csv(C.ART / "labels.csv", index=False)
+    print(df.label_final.value_counts().to_string())
+    print(f"changed by review: {int(df.label_changed.sum())}/{len(df)}")
+
+
+def cmd_featurize(args):
+    from featurize import featurize_all
+    _, ids = _ready_ids()
+    featurize_all(ids)
+
+
+SUBCOMMANDS["extract"] = ("decode frames + bursts for the sample", lambda p: None, cmd_extract)
+SUBCOMMANDS["label-sheets"] = ("render contact sheets for label review", lambda p: None, cmd_label_sheets)
+SUBCOMMANDS["labels"] = ("build labels.csv from mapping + overrides", lambda p: None, cmd_labels)
+SUBCOMMANDS["featurize"] = ("compute motion features and encoder embeddings", lambda p: None, cmd_featurize)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="main.py", description="Video type classifier for chunking routing")
     sub = parser.add_subparsers(dest="cmd", required=True)
