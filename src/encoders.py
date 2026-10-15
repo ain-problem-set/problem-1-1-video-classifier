@@ -4,6 +4,7 @@ import time
 import numpy as np
 import open_clip
 import torch
+from timm.utils.model import reparameterize_model
 from PIL import Image
 
 import config as C
@@ -22,6 +23,8 @@ class Encoder:
         self.name, self.pretrained = name, pretrained
         self.model, _, self.preprocess = open_clip.create_model_and_transforms(name, pretrained=pretrained)
         self.model.eval()
+        # MobileCLIP/FastViT blocks are multi-branch at train time; fuse for inference (no-op for ViT-B-32)
+        self.model = reparameterize_model(self.model)
         self.tokenizer = open_clip.get_tokenizer(name)
 
     @property
@@ -52,8 +55,9 @@ def load(name, pretrained):
     return Encoder(name, pretrained)
 
 
-def ms_per_frame(enc, frames, repeats=5):
-    enc.embed(frames[:1])  # warm-up
+def ms_per_frame(enc, frames, repeats=10):
+    for _ in range(2):  # warm-up
+        enc.embed(frames[:1])
     times = []
     for i in range(repeats):
         t0 = time.perf_counter()
