@@ -5,3 +5,5 @@ venv/
 .env
 node_modules/
 .DS_Store
+data/
+.pytest_cache/
