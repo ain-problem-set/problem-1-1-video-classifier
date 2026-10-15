@@ -52,3 +52,21 @@ def test_evaluate_does_not_import_torch():
     code = "import sys; sys.path.insert(0, 'src'); import train_eval; print('torch' in sys.modules)"
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
     assert out.stdout.strip() == "False"
+
+
+def test_cv_alignment_when_training_fold_lacks_a_middle_class():
+    rng = np.random.default_rng(0)
+    y = np.repeat(np.arange(6), [12, 12, 1, 12, 12, 12])
+    X = np.eye(6)[y] * 3 + 0.3 * rng.normal(size=(len(y), 6))
+    lone = int(np.flatnonzero(y == 2)[0])
+    proba = cross_val_proba(X, y, 6, n_repeats=2)
+    assert proba.shape == (2, len(y), 6)
+    assert np.allclose(proba.sum(2), 1.0)
+    # The fold testing the lone class-2 video trains without class 2, so the head has only 5 columns.
+    # Correct placement via head.classes_ leaves column 2 at exactly 0 for that video.
+    assert (proba[:, lone, 2] == 0).all()
+    # A naive out[te, :len(classes_)] assignment would shift classes 3..5 one column left, so every
+    # video of those classes in that fold would be mispredicted and accuracy on the others would drop.
+    others = np.arange(len(y)) != lone
+    for r in range(2):
+        assert (proba[r].argmax(1)[others] == y[others]).mean() > 0.9
