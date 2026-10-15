@@ -6,6 +6,24 @@ import sys
 SUBCOMMANDS = {}
 
 
+def _read(path):
+    import pandas as pd
+    return pd.read_csv(path, dtype=str, keep_default_na=False)
+
+
+def cmd_sample(args):
+    import config as C
+    from sampling import fetch_parquet, load_videomme, stratified_sample
+    parquet = fetch_parquet(C.VIDEOMME_PARQUET_URL, C.DATA / "videomme.parquet")
+    plan = stratified_sample(load_videomme(parquet))
+    C.ART.mkdir(parents=True, exist_ok=True)
+    plan.to_csv(C.ART / "sample_plan.csv", index=False)
+    print(plan.groupby("role").size().to_string())
+
+
+SUBCOMMANDS["sample"] = ("draw the stratified 10% VideoMME sample", lambda p: None, cmd_sample)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="main.py", description="Video type classifier for chunking routing")
     sub = parser.add_subparsers(dest="cmd", required=True)
