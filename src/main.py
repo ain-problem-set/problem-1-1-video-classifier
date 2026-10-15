@@ -24,6 +24,18 @@ def cmd_sample(args):
 SUBCOMMANDS["sample"] = ("draw the stratified 10% VideoMME sample", lambda p: None, cmd_sample)
 
 
+def cmd_download(args):
+    import config as C
+    from download import download_sample
+    final, missing = download_sample(_read(C.ART / "sample_plan.csv"))
+    final.to_csv(C.ART / "sample.csv", index=False)
+    print(f"{len(final)} videos ready, {int((final.replaced != '').sum())} replaced by spares, "
+          f"unfilled slots: {missing or 'none'}")
+
+
+SUBCOMMANDS["download"] = ("download sampled videos (yt-dlp, <=240p)", lambda p: None, cmd_download)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="main.py", description="Video type classifier for chunking routing")
     sub = parser.add_subparsers(dest="cmd", required=True)
