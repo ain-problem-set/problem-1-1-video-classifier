@@ -101,6 +101,14 @@ SUBCOMMANDS["evaluate"] = ("run the CV sweep on committed features",
                            lambda p: p.add_argument("--repeats", type=int, default=5), cmd_evaluate)
 
 
+def cmd_export(args):
+    from export import export_production
+    export_production()
+
+
+SUBCOMMANDS["export"] = ("export the production head to ONNX", lambda p: None, cmd_export)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="main.py", description="Video type classifier for chunking routing")
     sub = parser.add_subparsers(dest="cmd", required=True)
