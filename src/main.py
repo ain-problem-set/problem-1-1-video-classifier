@@ -109,6 +109,49 @@ def cmd_export(args):
 SUBCOMMANDS["export"] = ("export the production head to ONNX", lambda p: None, cmd_export)
 
 
+def cmd_predict(args):
+    import json
+    from predict import Predictor, collect_videos
+    results = Predictor().predict_many(collect_videos(args.paths))
+    for r in results:
+        print(json.dumps(r))
+    return 1 if any("error" in r for r in results) else 0
+
+
+def cmd_benchmark(args):
+    import json
+    import config as C
+    from benchmark import run
+    from predict import Predictor, collect_videos
+    out = run(Predictor(), collect_videos(args.paths))
+    (C.ART / "benchmark.json").write_text(json.dumps(out, indent=2))
+    print(json.dumps(out, indent=2))
+
+
+def cmd_fetch_encoder(args):
+    import json
+    import config as C
+    from encoders import load
+    if args.all:
+        wanted = list(json.loads((C.FEATURES / "encoders.json").read_text()).values())
+    else:
+        enc = json.loads((C.MODELS / "production.json").read_text())["encoder"]
+        wanted = [enc] if enc else []
+    for name, pretrained in wanted:
+        load(name, pretrained)
+        print(f"encoder ready: {name}/{pretrained}")
+    if not wanted:
+        print("production config uses no encoder; nothing to fetch")
+
+
+SUBCOMMANDS["predict"] = ("classify videos (files or directories)",
+                          lambda p: p.add_argument("paths", nargs="+"), cmd_predict)
+SUBCOMMANDS["benchmark"] = ("time the production pipeline at batch 1 and 32",
+                            lambda p: p.add_argument("paths", nargs="+"), cmd_benchmark)
+SUBCOMMANDS["fetch-encoder"] = ("download encoder weights (production, or --all)",
+                                lambda p: p.add_argument("--all", action="store_true"), cmd_fetch_encoder)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="main.py", description="Video type classifier for chunking routing")
     sub = parser.add_subparsers(dest="cmd", required=True)
